@@ -5,8 +5,8 @@ const { classSet } = require('../core/util');
 const Picker = require('./Picker');
 const Options = require('./Options');
 const createToolButton = require('./createToolButton');
-const {default: LiterallyCanvasModel} = require('../core/LiterallyCanvas');
-const {default: defaultOptions} = require('../core/defaultOptions');
+const LiterallyCanvasModel = require('../core/LiterallyCanvas');
+const defaultOptions = require('../core/defaultOptions');
 
 require('../optionsStyles/font');
 require('../optionsStyles/stroke-width');
@@ -43,7 +43,7 @@ const LiterallyCanvas = createReactClass({
     }
   },
 
-  UNSAFE_componentWillMount() {
+  componentWillMount() {
     if (this.lc) return;
 
     if (this.props.lc) {

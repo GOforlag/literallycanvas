@@ -1,8 +1,8 @@
 require './ie_customevent'
 require './ie_setLineDash'
 
-{default: LiterallyCanvasModel} = require './core/LiterallyCanvas'
-{default: defaultOptions} = require './core/defaultOptions'
+LiterallyCanvasModel = require './core/LiterallyCanvas'
+defaultOptions = require './core/defaultOptions'
 
 canvasRenderer = require './core/canvasRenderer'
 svgRenderer = require './core/svgRenderer'
