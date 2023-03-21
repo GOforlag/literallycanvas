@@ -43,7 +43,7 @@ const LiterallyCanvas = createReactClass({
     }
   },
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     if (this.lc) return;
 
     if (this.props.lc) {
