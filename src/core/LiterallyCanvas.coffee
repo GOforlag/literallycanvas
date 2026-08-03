@@ -11,6 +11,47 @@ util = require './util'
 
 INFINITE = 'infinite'
 
+
+# TEMPORARY: validation aid for the snapshot size optimization. Delete once
+# you've confirmed the optimized build is live. Costs one JSON.stringify per
+# getSnapshot() call, so don't ship it in a build that snapshots on every
+# drawingChange.
+_logSnapshotSize = (snapshot) ->
+  shapes = (snapshot.shapes or []).concat(snapshot.backgroundShapes or [])
+
+  points = 0
+  stale = 0
+  for shape in shapes
+    data = shape?.data
+    continue unless data
+    points += (data.pointCoordinatePairs or data.points or []).length
+    stale += 1 if data.smoothedPointCoordinatePairs
+
+  bytes = JSON.stringify(snapshot).length
+  size =
+    if bytes >= 1048576
+      "#{(bytes / 1048576).toFixed(2)} MB"
+    else
+      "#{(bytes / 1024).toFixed(1)} KB"
+
+  verdict =
+    if not shapes.length
+      'empty drawing - draw a pen stroke, then check again'
+    else if stale
+      "#{stale}/#{shapes.length} shapes still carry smoothedPointCoordinatePairs
+       - OLD code is running"
+    else
+      'no smoothed points serialized - NEW code is running'
+
+  perPoint =
+    if points then " | #{(bytes / points).toFixed(0)} bytes/point (was ~355)" else ''
+
+  console.log(
+    "%c[literallycanvas] snapshot #{size} | #{shapes.length} shapes |
+     #{points} points#{perPoint}\n  #{verdict}",
+    "color: #{if stale then '#c0392b' else '#27ae60'}")
+
+
 module.exports = class LiterallyCanvas
 
   constructor: (arg1, arg2) ->
@@ -470,6 +511,8 @@ module.exports = class LiterallyCanvas
       snapshot.backgroundShapes = (shapeToJSON(shape) for shape in @backgroundShapes)
     if 'imageSize' in keys
       snapshot.imageSize = {@width, @height}
+
+    _logSnapshotSize(snapshot)  # TEMPORARY - remove with the helper above
 
     snapshot
   getSnapshotJSON: ->
