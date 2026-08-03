@@ -1,7 +1,6 @@
 React = require './React-shim'
 DOM = require '../reactGUI/ReactDOMFactories-shim'
 createReactClass = require '../reactGUI/createReactClass-shim'
-PureRenderMixin = require 'react-addons-pure-render-mixin'
 {classSet, requestAnimationFrame, cancelAnimationFrame} = require '../core/util'
 {_} = require '../core/localization'
 
@@ -29,7 +28,6 @@ getHSLString = ({hue, sat, light}) ->
 
 ColorGrid = React.createFactory createReactClass
   displayName: 'ColorGrid'
-  mixins: [PureRenderMixin]
   render: ->
     {div} = DOM
     (div {},
@@ -69,7 +67,6 @@ ColorGrid = React.createFactory createReactClass
 
 ColorWell = createReactClass
   displayName: 'ColorWell'
-  mixins: [PureRenderMixin]
   getInitialState: ->
     colorString = @props.lc.colors[@props.colorName]
     hsla = parseHSLAString(colorString)

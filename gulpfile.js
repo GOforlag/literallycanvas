@@ -2,7 +2,9 @@ var browserify = require('browserify');
 var gulp = require('gulp');
 var connect = require('gulp-connect');
 var rename = require('gulp-rename');
-var sass = require('gulp-sass');
+var gulpSass = require('gulp-sass');
+var dartSass = require('sass');
+var sass = gulpSass(dartSass);
 var source = require('vinyl-source-stream');
 var streamify = require('gulp-streamify')
 var uglify = require('gulp-uglify');
@@ -84,18 +86,17 @@ gulp.task('browserify-lc-core', function() {
 });
 
 
-gulp.task('uglify', ['browserify-lc-main', 'browserify-lc-core'], function() {
+gulp.task('uglify', gulp.series('browserify-lc-main', 'browserify-lc-core', function uglifyTask() {
   return gulp.src(['./lib/js/literallycanvas?(-core).js'])
     .pipe(uglify())
     .pipe(rename({
       suffix: ".min"
     }))
     .pipe(gulp.dest('./lib/js'));
-});
+}));
 
 
-gulp.task('default', ['uglify', 'sass'], function() {
-});
+gulp.task('default', gulp.parallel('uglify', 'sass'));
 
 
 gulp.task('demo-reload', function () {
@@ -117,5 +118,4 @@ gulp.task('serve', function() {
 });
 
 
-gulp.task('dev', ['browserify-lc-main', 'browserify-lc-core', 'sass', 'watch', 'serve'], function() {
-});
+gulp.task('dev', gulp.parallel('browserify-lc-main', 'browserify-lc-core', 'sass', 'watch', 'serve'));

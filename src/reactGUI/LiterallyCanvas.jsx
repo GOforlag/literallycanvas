@@ -1,6 +1,5 @@
 const React = require('../reactGUI/React-shim');
 const createReactClass = require('../reactGUI/createReactClass-shim');
-const { findDOMNode } = require('../reactGUI/ReactDOM-shim');
 const { classSet } = require('../core/util');
 const Picker = require('./Picker');
 const Options = require('./Options');
@@ -23,7 +22,7 @@ const CanvasContainer = createReactClass({
   },
   render() {
     return (
-      <div key="literallycanvas" className="lc-drawing with-gui" />
+      <div key="literallycanvas" className="lc-drawing with-gui" ref={this.props.canvasRef} />
     );
   }
 })
@@ -33,19 +32,7 @@ const LiterallyCanvas = createReactClass({
 
   getDefaultProps() { return defaultOptions; },
 
-  bindToModel() {
-    const canvasContainerEl = findDOMNode(this.canvas);
-    const opts = this.props;
-    this.lc.bindToElement(canvasContainerEl);
-
-    if (typeof this.lc.opts.onInit === 'function') {
-      this.lc.opts.onInit(this.lc);
-    }
-  },
-
-  componentWillMount() {
-    if (this.lc) return;
-
+  getInitialState() {
     if (this.props.lc) {
       this.lc = this.props.lc;
     } else {
@@ -55,6 +42,18 @@ const LiterallyCanvas = createReactClass({
     this.toolButtonComponents = this.lc.opts.tools.map(ToolClass => {
       return createToolButton(new ToolClass(this.lc));
     });
+
+    return {};
+  },
+
+  bindToModel() {
+    const canvasContainerEl = this.canvasRef;
+    const opts = this.props;
+    this.lc.bindToElement(canvasContainerEl);
+
+    if (typeof this.lc.opts.onInit === 'function') {
+      this.lc.opts.onInit(this.lc);
+    }
   },
 
   componentDidMount() {
@@ -86,7 +85,7 @@ const LiterallyCanvas = createReactClass({
 
     return (
       <div className={`literally ${topOrBottomClassName}`} style={style}>
-        <CanvasContainer ref={item => this.canvas = item} />
+        <CanvasContainer canvasRef={el => this.canvasRef = el} />
         <Picker {...pickerProps} />
         <Options lc={lc} imageURLPrefix={imageURLPrefix} />
       </div>

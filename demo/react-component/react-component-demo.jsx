@@ -74,7 +74,13 @@ const DemoApp = createReactClass({
 });
 
 
-ReactDOM.render(
-  <DemoApp />,
-  document.getElementById('app-container')
-);
+// Use createRoot API for React 18+, fallback to render for older versions
+if (ReactDOM.createRoot) {
+  const root = ReactDOM.createRoot(document.getElementById('app-container'));
+  root.render(<DemoApp />);
+} else {
+  ReactDOM.render(
+    <DemoApp />,
+    document.getElementById('app-container')
+  );
+}
