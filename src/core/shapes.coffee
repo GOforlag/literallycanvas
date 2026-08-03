@@ -106,8 +106,12 @@ _dual = (points) ->
 
   return dualed
 
+# Constructed directly instead of via createShape() to skip the GUID. These are
+# intermediate spline points: they're serialized as bare coordinate pairs and
+# never looked up by id, and the b-spline makes ~169 of them per point added, so
+# the GUIDs alone were ~85% of the cost of building a path.
 _mid = (a, b) ->
-  createShape('Point', {
+  new shapes.Point({
     x: a.x + ((b.x - a.x) / 2),
     y: a.y + ((b.y - a.y) / 2),
     size: a.size + ((b.size - a.size) / 2),
@@ -269,7 +273,11 @@ _createLinePathFromData = (shapeName, data) ->
       }
     }) for [x, y] in data.smoothedPointCoordinatePairs)
 
-  return null unless points[0]
+  # tolerate data that only has smoothed points: use them as the raw points so
+  # they're rendered as-is rather than throwing
+  points = smoothedPoints if not points and smoothedPoints
+
+  return null unless points?[0]
   createShape(shapeName, {
     points, smoothedPoints,
     order: data.order, tailSize: data.tailSize, smooth: data.smooth
@@ -305,13 +313,15 @@ linePathFuncs =
       height: p.size,
     }
 
+  # smoothedPoints are deliberately not serialized. They're fully derived from
+  # @points by replaying addPoint() on load, and at the default order they
+  # outnumber @points 8:1, so storing them made up ~89% of a pen-heavy snapshot.
+  # Snapshots written before this change still have them and are still read.
   toJSON: ->
     if _doAllPointsShareStyle(@points)
       {
         @order, @tailSize, @smooth,
         pointCoordinatePairs: ([point.x, point.y] for point in @points),
-        smoothedPointCoordinatePairs: (
-          [point.x, point.y] for point in @smoothedPoints),
         pointSize: @points[0].size,
         pointColor: @points[0].color
       }
@@ -335,23 +345,29 @@ linePathFuncs =
                    @segmentSize * @tailSize)
 
       # Remove the last @tailSize - 1 segments from @smoothedPoints
-      # then concat the tail. This is done because smoothed points
+      # then append the tail. This is done because smoothed points
       # close to the end of the path will change as new points are
       # added.
-      @smoothedPoints = @smoothedPoints.slice(
-        0, @smoothedPoints.length - @segmentSize * (@tailSize - 1)
-      ).concat(@tail)
+      # Truncate in place rather than slice().concat(): the array is
+      # @segmentSize times longer than @points, so reallocating it per point
+      # made building a path O(n^2). That was invisible while drawing (one
+      # call per mouse event) but dominates loading a snapshot, where every
+      # point is replayed back to back.
+      @smoothedPoints.length = Math.max(
+        0, @smoothedPoints.length - @segmentSize * (@tailSize - 1))
+      @smoothedPoints.push(@tail...)
 
+  # Both arrays have to be translated, and @points has to stay the raw points:
+  # it's what gets serialized, and aliasing it to @smoothedPoints multiplied the
+  # stored point count by @segmentSize on every move.
   move: ( moveInfo={} ) ->
-    if !@smooth
-      pts = @points
-    else
-      pts = @smoothedPoints
-
-    for pt in pts
+    for pt in @points
       pt.move(moveInfo)
 
-    @points = @smoothedPoints
+    # when not smoothing (or at order 0) both names refer to the same objects
+    if @smoothedPoints and @smoothedPoints != @points
+      for pt in @smoothedPoints
+        pt.move(moveInfo)
 
   setUpperLeft: (upperLeft={}) ->
     br = @getBoundingRect()
